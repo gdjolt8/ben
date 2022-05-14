@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <title>Accounts</title>
+  </head>
+  <body>
+    <h1>Turncraft Login</h1>
+    <form id="formreg" method="post">
+      <fieldset><legend>Register</legend>
+    <dl>
+      <dt><label for="username">Username:</label></dt>
+      <dd><input name="username" type="text" id="username" maxlength="20" value="" size="30"</dd>
+    </dl>
+    <dl>
+      <dt><label for="password">Password:</label></dt>
+      <dd><input name="password" type="password" id="password" maxlength="20" value="" size="30"</dd>
+    </dl>
+    <dl>
+        <p id="para"></p>
+    </dl>
+    <dl>
+      <button type="submit" id="button1" name="register" value="register" style="height:50px; width:100px; font-size:1rem;">Register</button>
+    </dl>
+    </form>
+    
+        <script> 
+          const form = document.getElementById('formreg')
+          form.addEventListener('submit', loginUser)
+
+          async function loginUser(event) {
+             event.preventDefault()
+             const username = document.getElementById('username').value
+             const password = document.getElementById('password').value
+
+             const result = await fetch('/api/login', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                 username,
+                 password
+               })
+             }).then((res) => res.json())
+
+             if (result.status === "ok") {
+                console.log('Got the token: ', result.data)
+                localStorage.setItem('token', result.data)
+                document.getElementById("para").innerHTML = 'Successfully logged in!'
+             } else {
+                 alert(result.error)
+             }
+
+             
+          }
+        </script>
+  </body>
+</html>
