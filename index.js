@@ -7,6 +7,7 @@ const bodyParser = require('body-parser')
 const { default: mongoose } = require("mongoose");
 const User = require('./model/user')
 const Database = require('./model/userdata')
+const Messages = require('./model/forum')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
@@ -106,7 +107,13 @@ app.post('/api/register', async (req, res) => {
     })
   }
   const password = await bcrypt.hash(plainTextPassword, 10)
-  const date = Date();
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2, '0');
+  var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+  var yyyy = today.getFullYear();
+
+  today = mm + '/' + dd + '/' + yyyy 
+  const date = today;
   try {
       const response = await User.create({
         username,
@@ -210,21 +217,20 @@ app.post('/api/banuser', async (req, res) => {
 
 app.post('/api/moderator', async (req, res) => {
   const { newmod } = req.body
-  const admin = true
   try {
        
       const user = jwt.verify()
 
       await Database.updateOne(
-        {user},
+        {username: newmod},
         {
-          $set: { admin }
+          $set: { admin: true }
         }
       )
 
 
   } catch (error) {
-
+    return res.json({ status: 'error', error: 'Something went wrong.'})
   }
   
 })
@@ -235,24 +241,36 @@ app.get("/tou", (req, res) => {
 });
 
 app.get("/messages", (req, res) => {
-   res.json(messages);
+  Messages.find().lean().exec(function (err, forum) {
+    return res.json(forum);
+  })
 });
 
-app.post("/messages", async (req, res) => {
+app.post("/api/messages", async (req, res) => {
+  var today = new Date();
+  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  var dd = String(today.getDate()).padStart(2, '0');
+  var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+  var yyyy = today.getFullYear();
+
+  today = mm + '/' + dd + '/' + yyyy + ' ' + time
+
+  
+
+  const { username, message } = req.body
+
   try {
-    var today = new Date();
-    var dd = String(today.getDate()).padStart(2, '0');
-    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-    var yyyy = today.getFullYear();
-
-    today = mm + '/' + dd + '/' + yyyy
-
-      const message = { name: req.body.name, message: req.body.message, time: today}
-      messages.push(message)
-      res.status(201).send()
-  } catch {
+    const Message = await Messages.create({
+      username,
+      message,
+      date: today,
+      likes: 0
+    })
+  } catch(error) {
       res.status(500).send()
-  }
+      throw error
+    }
+    
 });
 
 
