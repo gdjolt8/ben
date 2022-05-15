@@ -248,7 +248,7 @@ app.get("/messages", (req, res) => {
 
 app.post("/api/messages", async (req, res) => {
   var today = new Date();
-  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  var time = String(today.getHours()).padStart(2,'0') + ":" + String(today.getUTCMinutes()).padStart(2,'0');+ ":" + String(today.getSeconds()).padStart(2,'0');
   var dd = String(today.getDate()).padStart(2, '0');
   var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
   var yyyy = today.getFullYear();
