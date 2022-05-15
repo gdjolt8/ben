@@ -240,7 +240,14 @@ app.get("/messages", (req, res) => {
 
 app.post("/messages", async (req, res) => {
   try {
-      const message = { name: req.body.name, message: req.body.message, time: Date()}
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = mm + '/' + dd + '/' + yyyy
+
+      const message = { name: req.body.name, message: req.body.message, time: today}
       messages.push(message)
       res.status(201).send()
   } catch {
