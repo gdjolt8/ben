@@ -3,7 +3,7 @@
     <title>Accounts</title>
   </head>
   <body>
-    <h1>Turncraft Account Registration v1.01</h1>
+    <h1>Turncraft Account Registration v1</h1>
     <form id="formreg" method="post">
       <fieldset><legend>Register</legend>
     <dl>
@@ -13,6 +13,10 @@
     <dl>
       <dt><label for="password">Password:</label></dt>
       <dd><input name="password" type="password" id="password" maxlength="20" value="" size="30"</dd>
+    </dl>
+    <dl>
+      <dt><label for="email">Email:</label></dt>
+      <dd><input name="email" type="email" id="email" maxlength="100" value="" size="30" required</dd>
     </dl>
     <dl>
       <button type="submit" id="button1" name="register" value="register" style="height:50px; width:100px; font-size:1rem;">Register</button>
@@ -29,6 +33,7 @@
              event.preventDefault()
              const username = document.getElementById('username').value
              const password = document.getElementById('password').value
+             const email = document.getElementById('email').value
 
              const result = await fetch('/api/register', {
                method: 'POST',
@@ -37,14 +42,17 @@
                },
                body: JSON.stringify({
                  username,
-                 password
+                 password,
+                 email
                })
              }).then((res) => res.json())
 
              if (result.status === 'ok') {
               // everythign went fine
               console.log('Success')
+              document.getElementById("para").innerHTML = "Registered successfully!";
             } else {
+              document.getElementById("para").innerHTML = result.error;
               console.log(result.error)
             }
 

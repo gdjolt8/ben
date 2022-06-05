@@ -7,7 +7,9 @@ const DataSchema = new mongoose.Schema(
         date: { type: String, required: true},
         admin: { type: Boolean, required: true},
         banned: { type: Boolean, required: true},
-        id: { type: Number, required: true}
+        userid: { type: Number, required: true},
+        friendrequests: [{ username: String }],
+        friends: [{ friendName: String}]
     },
     { collection: 'database'}
 )

@@ -4,8 +4,8 @@ const ForumSchema = new mongoose.Schema(
 	{
 		username: { type: String, required: true},
 		message: { type: String, required: true},
-        date: { type: String, required: true},
-        likes: { type: Number}
+    date: { type: String, required: true},
+    likes: { type: Number}
 	},
 	{ collection: 'forum', versionKey: false }
 )

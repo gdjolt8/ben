@@ -10,7 +10,9 @@ const Database = require('./model/userdata')
 const Messages = require('./model/forum')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-
+const Levels = require('./model/levels');
+const { kill } = require("process");
+var mail = require("nodemailer");
 const JWT_SECRET = 'sd9j0asd208390147b32sd9a9d0ju!@#$%^&'
 const e = 'mongodb+srv://trvlert:RrhE5a553UMc0LIC@turncraft.4bigr.mongodb.net/test'
 mongoose.connect(e, {
@@ -28,17 +30,13 @@ app.use(express.json())
 
 
 app.get("/user/:id", (req, res) => {
-    
-
+  res.send(`You have looked for ${req.params["id"]}`);
 });
 
 
 app.get("/chess", (req, res) => {
 
-  var data = {
-    "whosbad": "solomon should get better at chess"
-  };
-  res.send("Chess is a game stemmed on feudalism, yes history 101");
+  res.send("why the hell would you want to know about chess");
   
 });
 
@@ -82,14 +80,56 @@ app.post('/api/change-password', async (req, res) => {
 	}
 })
 
+app.post('/api/postlevel', async (req, res) => {
+   const lvlName = "";
+   const allocatedID = 0;
+   Levels.find().lean().exec(function (err, levels) {
+    allocatedID = levels.length + 1;
+  })
+   
+   if(req.body.name == "") {
+     lvlName = "My Level";
+   }
+   try {
+    const resu = await Levels.create({
+        username: req.body.username,
+        level: req.body.level,
+        description: req.body.description,
+        likes: 0,
+        name: lvlName,
+        id: allocatedID
+    })
+    return res.send(allocatedID);
+  } catch(error) {
+    if(error.code == 11000) {
+      return res.send("-1");
+    }
+  }
 
+})
 
+app.post('/api/likelevel', async (req, res) => {
+  const { username, levelid, type} = req.body
+  if(type != 1 || -1) {
+    return res.send("-1");
+  }
+  
+  try {
+    await Levels.updateOne(
+      { levelid: levelid },
+      {likes: 1}
+      )
+      return res.send("1")
+  } catch(error) {
+    return res.send("-1");
+  }
+})
 
 
 app.post('/api/register', async (req, res) => {
   console.log(req.body)
   
-  const { username, password: plainTextPassword } = req.body
+  const { username, password: plainTextPassword, email } = req.body
   const coins = 0;
   
   if(!username || typeof username !== 'string') {
@@ -111,7 +151,10 @@ app.post('/api/register', async (req, res) => {
   var dd = String(today.getDate()).padStart(2, '0');
   var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
   var yyyy = today.getFullYear();
-
+  var id = 0;
+  Database.find().lean().exec(function (err, sers) {
+    id = sers.length;
+  })
   today = mm + '/' + dd + '/' + yyyy 
   const date = today;
   try {
@@ -120,6 +163,7 @@ app.post('/api/register', async (req, res) => {
         password
       })
      console.log('User created!:' , response)
+     sendEmail(email);
   } catch(error) {
       if(error.code === 11000){
         return res.json({ status: 'error', error: 'Username already in user'})
@@ -128,15 +172,17 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
-    const length = Database.length + 1;
+  
+    
     const response = await Database.create({
       username,
       coins,
       date,
       admin: false,
       banned: false,
-      id: length
+      userid: id
     })
+   console.log(id)
    console.log('Database created!:' , response)
 } catch(error) {
     if(error.code === 11000){
@@ -175,38 +221,22 @@ app.post('/api/login', async(req, res) => {
 
 app.post('/api/banuser', async (req, res) => {
   
+   
   const { user1, user2 } = req.body
-  const first = await Database.findOne({username: user1 }).lean().exec()
-  const second = await Database.findOne({username: user2 }).lean().exec()
+  const first = await Database.findOne({username: user1 })
+  const second = await Database.findOne({username: user2 })
   /* user1 is who decided
   user2 is who will get BANNED */
 
-  if(!first || !second) {
-    return res.json({ status: 'error', error: "One of those accounts don't exist"})
-  }
-
-  if(first.admin == false) {
-    return res.json({ status: 'error', error:  first.admin + " " + second.admin + " " + ' Inflictor is NOT an admin!'})
-  }
-
-  if(second.banned == true) {
-    return res.json({ status: 'error', error: 'The user is already banned.'})
-  }
-
   try {
-      const _id = user2.id
-      const banned = true
-
       await Database.updateOne( 
-        {id: _id },
-         {banned: banned } 
-        )
+        {username: second.username},
+        {banned: true} 
+      )
       return res.json({ status:'ok', data: second.username + ' was banned!'})
   } catch (error) {
-     if(error.code === 11000) {
-       return res.json({ status: 'error', error: 'Something went wrong.'})
-     }
-     throw error
+     console.log(error)
+    res.status(200).json({status: 'error', error: '-1'})
   }
 
   
@@ -216,25 +246,50 @@ app.post('/api/banuser', async (req, res) => {
 })
 
 app.post('/api/moderator', async (req, res) => {
-  const { newmod } = req.body
+  const { username } = req.body
+  console.log(username)
+
+  console.log("Mod alert")
   try {
-       
-      const user = jwt.verify()
-
-      await Database.updateOne(
-        {username: newmod},
-        {
-          $set: { admin: true }
-        }
-      )
-
-
-  } catch (error) {
-    return res.json({ status: 'error', error: 'Something went wrong.'})
+    await Database.updateOne(
+      {username: username}, 
+      {admin: true}
+    )
+    res.json({status: 'ok'})
+  } catch(error) {
+    console.log(error)
+    
+    res.status(200).json({status: 'error', error: '-1'})
   }
+  
+  console.log("End")
   
 })
 
+function sendEmail(email){
+  var transporter = mail.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'worldwar2sim@gmail.com',
+      pass: 'fvwdsjpxafwdgrxc'
+    }
+  });
+  
+  var mailOptions = {
+    from: 'worldwar2sim@gmail.com',
+    to: String(email),
+    subject: 'Welcome to Turncraft!',
+    html: '<h4>Welcome to the world of Turncraft! We are sending you this message because it looks like you signed up.</h4><br><p>Please contact us if this was not you.</p> '
+  };
+  
+  transporter.sendMail(mailOptions, function(error, info){
+    if (error) {
+      console.log(error);
+    } else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+}
 
 app.get("/tou", (req, res) => {
   res.send('Turncraft is owned by gdjolt8.')
@@ -273,8 +328,47 @@ app.post("/api/messages", async (req, res) => {
     
 });
 
+app.post('/api/sendFriendRequest', async(req, res) => {
+  const userToFriend = req.body.targetUser;
+  const userWhoWants = req.body.user;
 
+  const UserDat =  Database.findOne({ username: userToFriend})
+  UserDat.friendrequests.push(String(userToFriend))
+  UserDat.save()
+})
+
+app.post('/api/acceptFriendRequest', async(req, res) => {
+  const userToFriend = req.body.targetUser;
+  const userWhoGotAccepted = req.body.user;
+
+  const UserDat1 = Database.findOne({ username: userToFriend })
+  const UserDat2 = Database.findOne({ username: userWhoGotAccepted})
+  
+  UserDat1.friendrequests.splice(UserDat1.friendrequests.indexOf(String(userToFriend)), 1)
+
+  UserDat1.friends.push(String(userToFriend))
+  UserDat2.friends.push(String(userToFriend))
+})
+
+app.post('/api/removeFriendRequest', async(req, res) => {
+  const userToFriend = req.body.targetUser;
+  const userWhoGotAccepted = req.body.user;
+
+  const UserDat1 = Database.findOne({ username: userToFriend })
+  const UserDat2 = Database.findOne({ username: userWhoGotAccepted})
+  
+  UserDat1.friendrequests.splice(UserDat1.friendrequests.indexOf(String(userToFriend)), 1)
+
+})
+
+app.post('/api/getFriendRequests', async(req, res) => {
+  const userToSee = req.body.user
+  const UserDat = Database.findOne({ username: userToSee})
+  if(!user) return res.sendStatus(400)
+  return res.json(UserDat.friends)
+})
 
 app.listen(process.env.PORT || 8000, () => {
   console.log("Server started!")
 });
+
